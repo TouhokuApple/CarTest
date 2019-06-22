@@ -11,16 +11,20 @@ import java.net.Socket;
 import java.nio.charset.Charset;
 
 class SocketClientTask extends AsyncTask<String, Void, Void>{
-    /*
-    private static final byte[] ADDRESS = new byte[] {
-            (byte)192, (byte)168, (byte)11, (byte)119
-    };
-    */
-    private static final byte[] ADDRESS = new byte[]{
-            (byte) 192, (byte) 168, (byte) 11, (byte) 9
-    };
-    private static final int PORT = 12345;
+    public static final String CMD_OPEN = "!open";
+    public static final String CMD_CLOSE = "!close";
+    private static final Object LOCK = new Object();
+
+    public static final String DEFAULT_ADDRESS = "192.168.11.9";
+    public static final int DEFAULT_PORT = 12345;
+    public static String address = DEFAULT_ADDRESS;
+    public static int port = DEFAULT_PORT;
     private static Socket sock = null;
+
+    private static boolean isConnected() {
+        return sock != null && sock.isConnected();
+    }
+
     private final Activity activity;
     public SocketClientTask(Activity activity) {
         this.activity = activity;
@@ -32,25 +36,46 @@ class SocketClientTask extends AsyncTask<String, Void, Void>{
     }
     @Override
     protected Void doInBackground(String... args) {
-        String str = args[0];
-        byte[] ascii = str.getBytes(Charset.forName("US-ASCII")); // 必ず ASCII コードにエンコードすること
-        byte[] message = new byte[ascii.length + 1];
-        System.arraycopy(ascii, 0, message, 0, ascii.length);
-        message[ascii.length] = '\0';                             // 必ず NULL 文字を追加すること
-        try {
-            if (sock == null || sock.isClosed()) {
-                InetAddress address = InetAddress.getByAddress(ADDRESS);
-                //落ちる原因
-                sock = new Socket(address, PORT);
-                Log.d("debug","connet");
+        synchronized (LOCK) {
+            String cmd = args[0];
+            if (CMD_OPEN.equals(cmd)) {
+                try {
+                    if (isConnected()) {
+                        sock.close();
+                    }
+                    InetAddress address = InetAddress.getByName(SocketClientTask.address);
+                    sock = new Socket(address, port);
+                    Log.d(getClass().getName(), "Connect :" + sock.toString());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else if (CMD_CLOSE.equals(cmd)) {
+                try {
+                    if (sock != null) {
+                        sock.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                String str = cmd;
+                byte[] ascii = str.getBytes(Charset.forName("US-ASCII")); // 必ず ASCII コードにエンコードすること
+                byte[] message = new byte[ascii.length + 1];
+                System.arraycopy(ascii, 0, message, 0, ascii.length);
+                message[ascii.length] = '\0';                             // 必ず NULL 文字を追加すること
+                try {
+                    if (!isConnected()) {
+                        InetAddress address = InetAddress.getByName(SocketClientTask.address);
+                        sock = new Socket(address, port);
+                        Log.d(getClass().getName(), "connet");
+                    }
+                    OutputStream out = sock.getOutputStream();
+                    out.write(message);
+                    out.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-            OutputStream out = sock.getOutputStream();
-            out.write(message);
-            out.flush();
-            //Toast.makeText(activity, "DebugSend " + str, Toast.LENGTH_LONG).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            //Toast.makeText(activity, "DebugError: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
         return null;
     }

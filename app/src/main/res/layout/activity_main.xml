@@ -57,6 +57,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="後退" />
+
+        <Button
+            android:id="@+id/button_take_photo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="撮影" />
+        <Button
+            android:id="@+id/button_conn_dialog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="接続オプション..." />
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

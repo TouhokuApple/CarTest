@@ -2,6 +2,7 @@ package com.example.testcontroller;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -10,14 +11,18 @@ import android.widget.TextView;
 import android.util.Log;
 import android.widget.Toast;
 
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+
 import com.github.niqdev.mjpeg.DisplayMode;
 import com.github.niqdev.mjpeg.Mjpeg;
 import com.github.niqdev.mjpeg.MjpegInputStream;
 import com.github.niqdev.mjpeg.MjpegView;
+import com.github.niqdev.mjpeg.OnFrameCapturedListener;
 
 import rx.Subscriber;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity  implements OnFrameCapturedListener {
 
     TextView mtv_state;
 
@@ -25,10 +30,13 @@ public class MainActivity extends AppCompatActivity {
     Button mb_lotate_left;
     Button mb_lotate_right;
     Button mb_go_backward;
+    Button mb_conn_dialog;
 
     private static final String TAG = "RaspberryPiCamera";
     private final String STREAM_URL = "http://192.168.11.9:8080/?action=stream";
     private MjpegView mjpegView;
+
+    private Bitmap lastPreview = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         mb_lotate_left = (Button)findViewById(R.id.button_lotate_left);
         mb_lotate_right = (Button)findViewById(R.id.button_lotate_right);
         mb_go_backward = (Button)findViewById(R.id.button_go_backward);
+        mb_conn_dialog = (Button)findViewById(R.id.button_conn_dialog);
         final MainActivity mainActivity = this;
         mb_go_forward.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -134,6 +143,12 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+        mb_conn_dialog.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View view) {
+                ConnectionDialogFragment dialog = new ConnectionDialogFragment();
+                dialog.show(getFragmentManager(), "ConnectionDialog");
+            }
+        });
     }
     @Override
     public void onResume() {
@@ -164,6 +179,15 @@ public class MainActivity extends AppCompatActivity {
 
                     }
                 });
+    }
+    @Override
+    protected void onPause(){
+        super.onPause();
+        mjpegView.stopPlayback();
+    }
+    @Override
+    public void onFrameCaptured(Bitmap bitmap){
+        lastPreview = bitmap;
     }
 }
 
