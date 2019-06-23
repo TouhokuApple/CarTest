@@ -1,11 +1,14 @@
 package com.example.testcontroller;
 
+import android.preference.Preference;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import android.util.Log;
@@ -20,6 +23,7 @@ import com.github.niqdev.mjpeg.MjpegInputStream;
 import com.github.niqdev.mjpeg.MjpegView;
 import com.github.niqdev.mjpeg.OnFrameCapturedListener;
 
+
 import rx.Subscriber;
 
 public class MainActivity extends AppCompatActivity  implements OnFrameCapturedListener {
@@ -31,6 +35,8 @@ public class MainActivity extends AppCompatActivity  implements OnFrameCapturedL
     Button mb_lotate_right;
     Button mb_go_backward;
     Button mb_conn_dialog;
+
+    Button mb_take_photo;
 
     private static final String TAG = "RaspberryPiCamera";
     private final String STREAM_URL = "http://192.168.11.9:8080/?action=stream";
@@ -45,6 +51,9 @@ public class MainActivity extends AppCompatActivity  implements OnFrameCapturedL
 
         mjpegView = (MjpegView)findViewById(R.id.mjpeg_view);
         mtv_state = (TextView)findViewById(R.id.text_view_state);
+
+        //photo
+        mjpegView.setOnFrameCapturedListener(this);
 
         mb_go_forward = (Button)findViewById(R.id.button_go_forward);
         mb_lotate_left = (Button)findViewById(R.id.button_lotate_left);
@@ -149,6 +158,11 @@ public class MainActivity extends AppCompatActivity  implements OnFrameCapturedL
                 dialog.show(getFragmentManager(), "ConnectionDialog");
             }
         });
+        mb_take_photo.setOnClickListener(new View.OnClickListener(){
+            @Override public void onClick(View view) {
+                
+            }
+        });
     }
     @Override
     public void onResume() {
@@ -179,6 +193,16 @@ public class MainActivity extends AppCompatActivity  implements OnFrameCapturedL
 
                     }
                 });
+    }
+    private String getPreference(String key){
+        return PreferenceManager
+                .getDefaultSharedPreferences(this)
+                .getString(key, "");
+    }
+    private DisplayMode calculateDisplayMode() {
+        int orientation = getResources().getConfiguration().orientation;
+        return orientation == Configuration.ORIENTATION_LANDSCAPE ?
+                DisplayMode.FULLSCREEN : DisplayMode.BEST_FIT;
     }
     @Override
     protected void onPause(){

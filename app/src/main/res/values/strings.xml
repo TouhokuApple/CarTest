@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">TestController</string>
+    <string name="menu_snapshot">Snapshot</string>
 </resources>

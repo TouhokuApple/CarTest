@@ -26,6 +26,17 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             stream:type="stream_default" />
+        <!-- ↓Photoの追加 -->
+        <!--
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            stream:srcCompat="@mipmap/ic_launcher" />
+            -->
         <Button
             android:id="@+id/button_go_forward"
             android:layout_width="match_parent"
@@ -68,6 +79,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="接続オプション..." />
+
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>
