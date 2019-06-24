@@ -1,7 +1,15 @@
 package com.example.testcontroller;
 
+import android.Manifest;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Environment;
 import android.preference.Preference;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -24,6 +32,14 @@ import com.github.niqdev.mjpeg.MjpegView;
 import com.github.niqdev.mjpeg.OnFrameCapturedListener;
 
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.sql.BatchUpdateException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 import rx.Subscriber;
 
 public class MainActivity extends AppCompatActivity  implements OnFrameCapturedListener {
@@ -44,6 +60,10 @@ public class MainActivity extends AppCompatActivity  implements OnFrameCapturedL
 
     private Bitmap lastPreview = null;
 
+    private final static int RESULT_PICK_IMAGEFILE = 1003;
+    private final static int REQUEST_PERMISSION = 1004;
+    private String filePath;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,6 +80,7 @@ public class MainActivity extends AppCompatActivity  implements OnFrameCapturedL
         mb_lotate_right = (Button)findViewById(R.id.button_lotate_right);
         mb_go_backward = (Button)findViewById(R.id.button_go_backward);
         mb_conn_dialog = (Button)findViewById(R.id.button_conn_dialog);
+        mb_take_photo = (Button)findViewById(R.id.button_take_photo);
         final MainActivity mainActivity = this;
         mb_go_forward.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -160,7 +181,18 @@ public class MainActivity extends AppCompatActivity  implements OnFrameCapturedL
         });
         mb_take_photo.setOnClickListener(new View.OnClickListener(){
             @Override public void onClick(View view) {
-                
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (lastPreview != null){
+                            if(Build.VERSION.SDK_INT >= 23){
+                                checkPermission();
+                            }else {
+                                saveIntent();
+                            }
+                        }
+                    }
+                });
             }
         });
     }
@@ -184,7 +216,6 @@ public class MainActivity extends AppCompatActivity  implements OnFrameCapturedL
                         Log.e(TAG, e.toString());
                         Toast.makeText(mainActivity, "Error: " + e.toString(), Toast.LENGTH_LONG).show();
                     }
-
                     @Override
                     public void onNext(MjpegInputStream mjpegInputStream) {
                         mjpegView.setSource(mjpegInputStream);
@@ -212,6 +243,67 @@ public class MainActivity extends AppCompatActivity  implements OnFrameCapturedL
     @Override
     public void onFrameCaptured(Bitmap bitmap){
         lastPreview = bitmap;
+    }
+    //RuntimePermissionCheck
+    private  void checkPermission(){
+        //すでに許可している
+        if (ActivityCompat.checkSelfPermission(this ,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+                PackageManager.PERMISSION_GRANTED){
+            saveIntent();
+        }
+        //拒否していた場合
+        else {
+            requestPermission();
+        }
+    }
+    //許可の設定
+    private  void requestPermission(){
+        if(ActivityCompat.shouldShowRequestPermissionRationale(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_PERMISSION);
+        } else {
+            Toast toast = Toast.makeText(this,
+                    "許可されないとアプリが実行できません",
+                    Toast.LENGTH_SHORT);
+            toast.show();
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,},
+                    REQUEST_PERMISSION);
+        }
+    }
+    //ファイル保存の呼び出し
+    private  void saveIntent(){
+        Log.d("debug","saveIntent()");
+        File editFolder = new File(
+                Environment.getExternalStoragePublicDirectory(
+                        Environment.DIRECTORY_PICTURES), "IMG");
+        editFolder.mkdirs();
+        //保存ファイル名
+        String fileName = new SimpleDateFormat(
+                "ddHHmmss", Locale.US).format(new Date());
+        filePath = String.format("%s%s.jpg", editFolder.getPath(),fileName);
+        Log.d("debug","filePath"+filePath);
+        //画像のファイルパス
+        try(FileOutputStream output = new FileOutputStream(filePath)){
+            lastPreview.compress(Bitmap.CompressFormat.JPEG,100,output);
+            output.flush();
+            output.close();
+            registerDatabase(filePath);
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+    //アンドロイドのデータベースへ登録する
+    private void registerDatabase(String file){
+        ContentValues contentValues = new ContentValues();
+        ContentResolver contentResolver = this.getContentResolver();
+        contentValues.put(MediaStore.Images.Media.MIME_TYPE,"image/jpeg");
+        contentValues.put("_data",file);
+        contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
     }
 }
 
